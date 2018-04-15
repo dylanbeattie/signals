@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+function init() {
+  window.requestAnimationFrame(draw);
+}
+
+var wave = new Array();
+
+var SIZE = 200;
+
+function Wave(strokeStyle, fillStyle, lineWidth, blip) {
+    this.strokeStyle = strokeStyle;
+    this.fillStyle = fillStyle;
+    this.points = new Array();
+    this.previousPosition = 0;
+    this.previousTimestamp = new Date();
+    this.position = 0;
+    this.reset = false;
+    this.running = true;
+    this.blip = blip;
+
+    this.resync = function() {
+      this.reset = true;
+      this.points = new Array();
+    }
+
+    this.pause = function() {
+      window.running = false;
+    }
+
+    this.start = function() {
+      window.running = true;
+      this.previousTimestamp = new Date();
+    }
+    this.phase = 0;
+
+    this.draw = function(frequency, amplitude, phase) {
+        var ctx = document.getElementById('canvas').getContext('2d');
+        ctx.lineWidth = lineWidth;
+        var phaseInRadians = (phase / 360) * 2 * Math.PI;
+        var now = new Date();
+        var interval = now - this.previousTimestamp; // number of ms since the last frame
+        // How far has the signal moved since the last position?
+        var distancePerMs = (frequency * 2 * Math.PI) / 1000;
+        var delta = distancePerMs * interval;        
+        if (this.reset) {
+          this.position = 0;
+          this.previousPosition = 0;
+          this.reset = false;
+        } else {
+          this.position = (this.previousPosition + delta) % (2 * Math.PI);
+          this.previousPosition = this.position;
+        }
+        this.position += phaseInRadians;
+        this.previousTimestamp = now;
+
+        ctx.fillStyle = strokeStyle;
+        ctx.strokeStyle = fillStyle;
+        ctx.save();
+        ctx.translate(SIZE,SIZE);
+        ctx.rotate(this.position);
+        ctx.beginPath();
+        ctx.lineWidth = 0.5;
+        ctx.arc(0, 0, amplitude, 0, Math.PI * 2, false);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(amplitude, 0, 5, 0, Math.PI * 2, false);
+        ctx.fill();
+        ctx.restore();
+        if (this.blip) {
+          ctx.save();
+          ctx.moveTo(SIZE,SIZE);
+          ctx.moveTo(SIZE+(amplitude*Math.cos(phaseInRadians))+10,SIZE+(amplitude*Math.sin(phaseInRadians)));
+          ctx.arc(SIZE+(amplitude*Math.cos(phaseInRadians)),SIZE+(amplitude*Math.sin(phaseInRadians)),10,0,Math.PI * 2,false);
+          ctx.globalAlpha = (Math.PI * 2 - this.previousPosition) / (Math.PI * 2); 
+          ctx.stroke();
+          ctx.fill();
+          ctx.restore();
+        }
+
+        var sinP = SIZE + (amplitude * Math.sin(this.position))
+        var cosP = SIZE + (amplitude * Math.cos(this.position));
+        ctx.moveTo(cosP, sinP);
+        ctx.lineWidth = 1;
+        ctx.lineTo(400,sinP);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.lineWidth = 3;
+        this.points.splice(0,0,sinP);
+        this.points = this.points.slice(0,800);
+        for(var i = 0; i < this.points.length; i++) ctx.lineTo(400+(2*i), this.points[i]);
+        ctx.stroke();
+      }
+  }
+
+  var signal = new Wave('rgba(0,255,0,255)', 'rgba(0,255,0,255)',3,true);
+  var carrier = new Wave('rgba(32,0,0,0)','rgba(32,0,0,0)',1,false);
+  window.running = true;
+
+  function draw() {
+
+    var frequency = parseFloat(document.getElementById('frequency-number-input').value); 
+    var amplitude = parseInt(document.getElementById('amplitude-number-input').value); 
+    var phase = parseInt(document.getElementById('phase-number-input').value); 
+    if (window.running) {
+      var ctx = document.getElementById('canvas').getContext('2d');
+      ctx.globalCompositeOperation = 'destination-over';
+      ctx.clearRect(0, 0, 1280, 720);
+      ctx.moveTo(400,200);
+      ctx.lineTo(1200,200);
+      ctx.strokeStyle = 'rgb(200,200,200)';
+      ctx.lineWidth = 1;
+      ctx.stroke(); // clear canvas
+      // ctx.fillStyle = 'rgb(0,0,0)';
+      // ctx.fillRect(0,0,800,800);
+
+      signal.draw(frequency,amplitude,phase);
+      carrier.draw(1,100,0);
+    }
+    window.requestAnimationFrame(draw);
+  }
+init();
+</script>
+<link type="text/css" rel="stylesheet" href="waveform.css" />
+</head>
+<body>
+  <canvas id='canvas' width="1280" height="720"></canvas>
+  <form>
+  <label for="frequency-number-input">Frequency: 
+    <input type="number" name="frequency" id="frequency-number-input" value="1.0" step="1" min="0" max="10" />
+  </label>
+
+
+  <label for="amplitude-number-input">Amplitude: 
+    <input type="number" name="amplitude" id="amplitude-number-input" value="100" step="10" min="20" max="180" />
+    </label>
+    
+  <label for="phase-number-input">Phase: 
+    <input type="number" name="phase" id="phase-number-input" value="0" step="45" min="-180" max="+180" />
+    </label>
+    <input type="button" value="Synchronise" id="resync-button" />
+    <label for='pause-checkbox-input'>
+      <input type='checkbox' name='pause' id='pause-checkbox-input' />
+      Pause
+    </label>
+    </form>
+    <script>
+      document.onkeydown = function(e) {
+        var phase = document.getElementById('phase-number-input').value;
+        switch(e.key) {
+          case "0":  phase = 0; break;
+          case "1": phase = 45; break;
+          case "2": phase = 90; break;
+          case "3": phase = 135; break;
+          case "4": phase = 180; break;
+          case "5": phase = 225; break;
+          case "6": phase = 270; break;
+          case "7": phase = 315; break;
+        }
+        document.getElementById('phase-number-input').value = phase;
+      }
+      document.getElementById('resync-button').onclick = function(){
+        console.log('Resyncing...');
+        signal.resync();
+        carrier.resync();
+    }
+    document.getElementById('pause-checkbox-input').onchange = function(){
+      if (this.checked) {
+        signal.pause();
+        carrier.pause();
+      } else {
+        signal.start();
+        carrier.start();
+      }
+    }
+</script>
+</body>
+</html>
