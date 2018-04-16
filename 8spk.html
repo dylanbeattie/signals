@@ -35,8 +35,7 @@ function Wave(strokeStyle, fillStyle, lineWidth, blip) {
       this.previousTimestamp = new Date();
     }
     this.phase = 0;
-    this.frequency = 0;
-    this.amplitude = 0;
+
     this.draw = function(frequency, amplitude, phase) {
         var ctx = document.getElementById('canvas').getContext('2d');
         ctx.lineWidth = lineWidth;
@@ -63,7 +62,7 @@ function Wave(strokeStyle, fillStyle, lineWidth, blip) {
         ctx.translate(SIZE,SIZE);
         ctx.rotate(this.position);
         ctx.beginPath();
-        // ctx.lineWidth = 0.5;
+        ctx.lineWidth = 0.5;
         ctx.arc(0, 0, amplitude, 0, Math.PI * 2, false);
         ctx.stroke();
 
@@ -71,7 +70,7 @@ function Wave(strokeStyle, fillStyle, lineWidth, blip) {
         ctx.arc(amplitude, 0, 5, 0, Math.PI * 2, false);
         ctx.fill();
         ctx.restore();
-        //if (this.blip) {
+        if (this.blip) {
           ctx.save();
           ctx.globalAlpha = (Math.PI * 2 - this.previousPosition) / (Math.PI * 2); 
           ctx.moveTo(SIZE,SIZE);
@@ -80,7 +79,7 @@ function Wave(strokeStyle, fillStyle, lineWidth, blip) {
           ctx.stroke();
           ctx.fill();
           ctx.restore();
-        //}
+        }
 
         var sinP = SIZE + (amplitude * Math.sin(this.position))
         var cosP = SIZE + (amplitude * Math.cos(this.position));
@@ -89,7 +88,7 @@ function Wave(strokeStyle, fillStyle, lineWidth, blip) {
         ctx.lineTo(400,sinP);
         ctx.stroke();
         ctx.beginPath();
-        ctx.lineWidth = lineWidth;
+        ctx.lineWidth = 3;
         this.points.splice(0,0,sinP);
         this.points = this.points.slice(0,800);
         for(var i = 0; i < this.points.length; i++) ctx.lineTo(400+(2*i), this.points[i]);
@@ -98,47 +97,56 @@ function Wave(strokeStyle, fillStyle, lineWidth, blip) {
   }
 
   var signal = new Wave('rgba(0,255,0,255)', 'rgba(0,255,0,255)',3,true);
-  var carrier = new Wave('rgb(100,100,100)','rgb(100,100,100)',1,false);
+  var carrier = new Wave('rgba(32,0,0,0)','rgba(32,0,0,0)',1,false);
   window.running = true;
 
-// var stream = Array(0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1);
-// var symbol = 0;
-// var streamed = new Array(0);
+var stream = Array(0,0,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,0,0,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,0,0,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1,0,0,0,1,1,1,0,0,0,0,1,1,1,1);
+var symbol = "00";
+var streamed = new Array(0);
+var bandwidth = 1;
 
-// window.setInterval(function() { 
-//   symbol = stream.shift(); 
-//   streamed.unshift(symbol);
-//   slingust = 0;
-// }, 1000);
+window.setInterval(function() { 
+  symbol = "";
+  for(var i = 0; i < bandwidth; i++) symbol += stream.shift();
+  streamed.unshift(symbol);
+  slingust = 0;
+}, 1000);
 
-// var slingust = 0;
+var slingust = 0;
 
 function draw() {
 
     var frequency = parseFloat(document.getElementById('frequency-number-input').value); 
     var amplitude = parseInt(document.getElementById('amplitude-number-input').value); 
-    var phase = parseInt(document.getElementById('phase-number-input').value); 
+    var phase = 0;
+    switch(symbol) {
+      case "01": phase = 180; break;
+      case "10": phase = 90; break;
+      case "11": phase = 270; break;
+      // default: phase = 0; break;
+    }
+    // var phase = (180 * symbol); // parseInt(document.getElementById('phase-number-input').value); 
     if (window.running) {
       var ctx = document.getElementById('canvas').getContext('2d');
       ctx.globalCompositeOperation = 'destination-over';
       ctx.clearRect(0, 0, 1280, 720);
-      // ctx.font = "60px Consolas";
-      // ctx.fillStyle = "rgb(0,255,0)";
-      // ctx.textAlign = "center";
-      // ctx.moveTo(0,0);
-      // ctx.fillText(symbol,200,400);
-      // slingust += 2;
-      // ctx.font = "40px Consolas";
+      ctx.font = "60px Consolas";
+      ctx.fillStyle = "rgb(0,255,0)";
+      ctx.textAlign = "center";
+      ctx.moveTo(0,0);
+      ctx.fillText(symbol,200,400);
+      slingust += 2;
+      ctx.font = "40px Consolas";
 
-      // for(var i = 0; i < streamed.length; i++) {
-      //   ctx.fillText(streamed[i],340+(120*i)+slingust,400);
-      //   ctx.moveTo(400+(120*i)+slingust,100);
-      //   ctx.lineTo(400+(120*i)+slingust,500);
-      // }
+      for(var i = 0; i < streamed.length; i++) {
+        ctx.fillText(streamed[i],340+(120*i)+slingust,400);
+        ctx.moveTo(400+(120*i)+slingust,100);
+        ctx.lineTo(400+(120*i)+slingust,500);
+      }
 
 
-      ctx.moveTo(200,200);
-      ctx.lineTo(1280,200);
+      ctx.moveTo(400,200);
+      ctx.lineTo(1200,200);
       ctx.strokeStyle = 'rgb(200,200,200)';
       ctx.lineWidth = 1;
       ctx.stroke(); // clear canvas
@@ -160,12 +168,12 @@ init();
   <canvas id='canvas' width="1280" height="720"></canvas>
   <form>
   <label for="frequency-number-input">Frequency: 
-    <input type="number" name="frequency" id="frequency-number-input" value="1.0" step="0.2" min="0" max="10" />
+    <input type="number" name="frequency" id="frequency-number-input" value="1.0" step="1" min="0" max="10" />
   </label>
 
 
   <label for="amplitude-number-input">Amplitude: 
-    <input type="number" name="amplitude" id="amplitude-number-input" value="100" step="25" min="25" max="200" />
+    <input type="number" name="amplitude" id="amplitude-number-input" value="100" step="10" min="20" max="180" />
     </label>
     
   <label for="phase-number-input">Phase: 
